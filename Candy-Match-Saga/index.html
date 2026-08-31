@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candy Match Saga: Rule-Based AI & Player Analytics</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app-container">
+        <!-- WELCOME SCREEN -->
+        <div id="welcome-screen" class="screen active">
+            <div class="welcome-card">
+                <div class="logo-container">
+                    <span class="logo-icon">🍬</span>
+                    <h1 class="game-title">CANDY MATCH SAGA</h1>
+                    <p class="game-subtitle">An Intelligent Rule-Based Candy Match Game with Player Analytics</p>
+                </div>
+                
+                <div class="input-group">
+                    <label for="player-name-input">👤 Player Name:</label>
+                    <input type="text" id="player-name-input" value="Player1" maxlength="20" placeholder="Your Name...">
+                </div>
+
+                <div class="input-group mode-selector-group">
+                    <label>🎮 Select Game Mode:</label>
+                    <div class="mode-options">
+                        <label class="mode-radio-label">
+                            <input type="radio" name="game-mode-radio" value="PLAYER_ONLY" checked>
+                            <span>👤 Player Only (Normal Mode)</span>
+                        </label>
+                        <label class="mode-radio-label">
+                            <input type="radio" name="game-mode-radio" value="PLAYER_VS_AI">
+                            <span>🤖 Player vs AI Opponent (Turn-Based & Learning)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- CANDY POOL SELECTOR: CONTROL MATCH FREQUENCY -->
+                <div class="input-group">
+                    <label for="candy-pool-select">🍬 Board Candy Variety (Controls Cascade Frequency):</label>
+                    <select id="candy-pool-select">
+                        <option value="4">4 Candy Types (Easy - High Cascades)</option>
+                        <option value="5">5 Candy Types (Medium - Frequent Matches)</option>
+                        <option value="6">6 Candy Types (Balanced Standard)</option>
+                        <option value="7" selected>7 Candy Types (Challenging - Reduces Automatic Cascades) ⭐</option>
+                        <option value="8">8 Candy Types (Expert - Minimal Automatic Cascades)</option>
+                    </select>
+                </div>
+
+                <div class="button-stack">
+                    <button id="btn-start-game" class="btn btn-primary" onclick="window.startGameFromUI && window.startGameFromUI()">🎮 START PLAYING</button>
+                    <button id="btn-open-level-select" class="btn btn-secondary" onclick="window.openLevelSelectFromUI && window.openLevelSelectFromUI()">📋 SELECT LEVEL (1-20)</button>
+                    <button id="btn-toggle-sound" class="btn btn-secondary" onclick="window.toggleSoundFromUI && window.toggleSoundFromUI()">🔊 SOUND: ON</button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- MAIN GAME SCREEN -->
+        <div id="game-screen" class="screen">
+            <!-- TOP DASHBOARD BAR -->
+            <header class="dashboard">
+                <div class="dash-item player-badge">
+                    <span class="badge-icon">👤</span>
+                    <span id="display-player-name">Player1</span>
+                </div>
+
+                <div class="dash-item level-badge">
+                    <span class="pill-label">LEVEL</span>
+                    <span id="display-level-num">1</span>
+                </div>
+
+                <!-- SEPARATE PLAYER SCORE & AI OPPONENT SCORE PILLS -->
+                <div class="dash-item score-pill player-score-pill">
+                    <span class="pill-label">👤 PLAYER SCORE</span>
+                    <span id="display-player-score">0</span>
+                </div>
+
+                <div class="dash-item score-pill ai-score-pill" id="ai-score-dash-pill">
+                    <span class="pill-label">🤖 AI SCORE</span>
+                    <span id="display-ai-score">0</span>
+                </div>
+
+                <div class="dash-item target-pill">
+                    <span class="pill-label">TARGET</span>
+                    <span id="display-target">1000</span>
+                </div>
+
+                <div class="dash-item moves-pill">
+                    <span class="pill-label">MOVES</span>
+                    <span id="display-moves">20</span>
+                </div>
+
+                <!-- TOTAL MATCHES DISPLAY PILL -->
+                <div class="dash-item matches-pill">
+                    <span class="pill-label">MATCHES</span>
+                    <span id="display-total-matches">0</span>
+                </div>
+
+                <div class="dash-item action-buttons">
+                    <button id="btn-add-candy" class="btn btn-small btn-purple" title="Add Candy Synthesis">+ Candy Synthesis</button>
+                    <button id="btn-custom-rule" class="btn btn-small btn-purple" title="Create Custom Rule">➕ Rule</button>
+                    <button id="btn-power-bi-dash" class="btn btn-small btn-gold" title="Open Power BI Analytics">📊 Power BI</button>
+                    <button id="btn-export-csv" class="btn btn-small btn-green" title="Export CSV">📥 CSV</button>
+                    <button id="btn-export-json" class="btn btn-small btn-green" title="Export JSON">📄 JSON</button>
+                    <button id="btn-reset" class="btn-icon" title="Restart Level">🔄</button>
+                    <button id="btn-menu" class="btn-icon" title="Main Menu">🏠</button>
+                </div>
+            </header>
+
+            <!-- DYNAMIC TURN STATUS BANNER (HANDLES GAME OVER & LEVEL COMPLETE!) -->
+            <div id="turn-banner" class="turn-banner player-turn-banner">
+                <span id="turn-banner-text">👤 YOUR TURN</span>
+            </div>
+
+            <!-- HINT ADVICE BANNER -->
+            <div id="hint-banner" class="hint-banner">
+                <span id="hint-banner-text">Click '💡 Ask AI for Hint' for valid move assistance!</span>
+            </div>
+
+            <!-- THREE COLUMN LAYOUT -->
+            <div class="lab-layout">
+                <!-- LEFT COLUMN: RESEARCH BOOK -->
+                <aside class="side-panel research-panel">
+                    <h3 class="panel-header">📖 RESEARCH BOOK 🔬</h3>
+                    <div class="search-box">
+                        <input type="text" id="search-research-input" placeholder="🔍 Search candies & rules...">
+                    </div>
+                    <div class="tab-buttons">
+                        <button id="tab-btn-discoveries" class="tab-btn active">Candies</button>
+                        <button id="tab-btn-rules" class="tab-btn">Combinations</button>
+                    </div>
+
+                    <div id="tab-discoveries" class="tab-content active">
+                        <div id="candy-grid-discoveries" class="discoveries-grid"></div>
+                    </div>
+
+                    <div id="tab-rules" class="tab-content">
+                        <div id="custom-rules-list" class="tree-list"></div>
+                    </div>
+
+                    <div class="encyclopedia-box">
+                        <h4 id="enc-title">Candy & Rule AI Evaluator</h4>
+                        <p id="enc-desc">Click any candy above to run the AI Worth & Accept/Reject Check!</p>
+                        <button id="btn-analyze-selected" class="btn btn-small btn-gold" style="width: 100%; margin-top: 8px;">🔬 Run AI Worth Check (Accept / Reject)</button>
+                    </div>
+                </aside>
+
+                <!-- CENTER COLUMN: GAME BOARD -->
+                <main class="board-container">
+                    <canvas id="game-canvas" width="512" height="512"></canvas>
+                </main>
+
+                <!-- RIGHT COLUMN: AI OPPONENT, AI LEARNING ENGINE, & MATCH BREAKDOWN -->
+                <aside class="side-panel ai-goals-panel">
+                    <!-- AI OPPONENT PANEL -->
+                    <div class="sub-panel ai-panel">
+                        <h3 class="panel-header">🤖 AI OPPONENT & SCOREBOARD</h3>
+                        
+                        <div class="ai-score-card">
+                            <div class="score-box p-score-box">
+                                <span>👤 Player</span>
+                                <strong id="ai-panel-p-score">0</strong>
+                            </div>
+                            <div class="score-box a-score-box">
+                                <span>🤖 AI Opponent</span>
+                                <strong id="ai-panel-a-score">0</strong>
+                            </div>
+                        </div>
+
+                        <div id="ai-log-box" class="ai-logs"></div>
+                        <button id="btn-ai-hint" class="btn btn-primary hint-btn">💡 Ask AI for Hint</button>
+                    </div>
+
+                    <!-- AI ADAPTIVE LEARNING ENGINE PANEL -->
+                    <div class="sub-panel ai-learning-panel">
+                        <h3 class="panel-header">🧠 AI LEARNING & STRATEGY ENGINE</h3>
+                        <div class="learning-stats-list">
+                            <div class="learn-row">
+                                <span class="l-label">Learned Strategy:</span>
+                                <span id="ai-learned-pattern" class="l-val val-cyan">Observing Player...</span>
+                            </div>
+                            <div class="learn-row">
+                                <span class="l-label">Player Fav Candy Target:</span>
+                                <span id="ai-learned-candy" class="l-val val-gold">None</span>
+                            </div>
+                            <div class="learn-row">
+                                <span class="l-label">AI Adaptation Level:</span>
+                                <span id="ai-adaptation-level" class="l-val val-green">Level 1 (0 Swaps)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- REAL-TIME MATCH COUNTER BREAKDOWN PANEL -->
+                    <div class="sub-panel matches-panel">
+                        <h3 class="panel-header">🎯 MATCH COUNTER BREAKDOWN</h3>
+                        <div class="match-counts-list">
+                            <div class="match-count-row">
+                                <span class="m-label">Total Matches Made:</span>
+                                <span id="stat-total-matches" class="m-val val-gold">0</span>
+                            </div>
+                            <div class="match-count-row">
+                                <span class="m-label">Match 2 (Pair Combo):</span>
+                                <span id="stat-m2" class="m-val val-pink">0</span>
+                            </div>
+                            <div class="match-count-row">
+                                <span class="m-label">Match 3 (Standard):</span>
+                                <span id="stat-m3" class="m-val val-blue">0</span>
+                            </div>
+                            <div class="match-count-row">
+                                <span class="m-label">Match 4 (Striped Candy):</span>
+                                <span id="stat-m4" class="m-val val-purple">0</span>
+                            </div>
+                            <div class="match-count-row">
+                                <span class="m-label">Match 5 (Color Bomb):</span>
+                                <span id="stat-m5" class="m-val val-green">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- FOOTER TELEMETRY STATUS -->
+            <footer class="game-footer">
+                <div id="db-status-tag" class="db-tag">⚡ Power BI Compatible CSV & JSON Telemetry Ready</div>
+            </footer>
+        </div>
+
+        <!-- POWER BI ANALYTICS DASHBOARD MODAL -->
+        <div id="power-bi-modal" class="modal">
+            <div class="modal-content glass-card super-wide-modal">
+                <div class="modal-header">
+                    <h2>📊 Power BI Real-Time Telemetry & Performance Dashboard</h2>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <!-- TOP METRICS CARDS -->
+                    <div class="pbi-metrics-grid">
+                        <div class="pbi-card">
+                            <span class="pbi-title">Player Score vs AI Score</span>
+                            <span id="pbi-val-scores" class="pbi-value" style="font-size: 14px;">0 / 0</span>
+                        </div>
+                        <div class="pbi-card">
+                            <span class="pbi-title">Player vs AI Moves</span>
+                            <span id="pbi-val-moves" class="pbi-value">0 / 0</span>
+                        </div>
+                        <div class="pbi-card">
+                            <span class="pbi-title">Swap Accuracy</span>
+                            <span id="pbi-val-accuracy" class="pbi-value">100%</span>
+                        </div>
+                        <div class="pbi-card">
+                            <span class="pbi-title">Match 2 / 3 / 4 / 5</span>
+                            <span id="pbi-val-matches" class="pbi-value">0 / 0 / 0 / 0</span>
+                        </div>
+                        <div class="pbi-card">
+                            <span class="pbi-title">Max Combo Multiplier</span>
+                            <span id="pbi-val-combo" class="pbi-value">1.0x</span>
+                        </div>
+                    </div>
+
+                    <!-- VISUAL CHARTS ROW -->
+                    <div class="pbi-charts-row">
+                        <div class="pbi-chart-box">
+                            <h4>🎯 Match Distribution (Power BI Bar Chart)</h4>
+                            <div class="bar-chart-container">
+                                <div class="bar-group">
+                                    <span class="bar-label">Match 2 (Pair Combo)</span>
+                                    <div class="bar-track"><div id="bar-m2" class="bar-fill fill-pink" style="width: 0%;"></div></div>
+                                    <span id="cnt-m2" class="bar-count">0</span>
+                                </div>
+                                <div class="bar-group">
+                                    <span class="bar-label">Match 3 (Standard)</span>
+                                    <div class="bar-track"><div id="bar-m3" class="bar-fill fill-blue" style="width: 0%;"></div></div>
+                                    <span id="cnt-m3" class="bar-count">0</span>
+                                </div>
+                                <div class="bar-group">
+                                    <span class="bar-label">Match 4 (Striped)</span>
+                                    <div class="bar-track"><div id="bar-m4" class="bar-fill fill-purple" style="width: 0%;"></div></div>
+                                    <span id="cnt-m4" class="bar-count">0</span>
+                                </div>
+                                <div class="bar-group">
+                                    <span class="bar-label">Match 5 (Color Bomb)</span>
+                                    <div class="bar-track"><div id="bar-m5" class="bar-fill fill-gold" style="width: 0%;"></div></div>
+                                    <span id="cnt-m5" class="bar-count">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pbi-chart-box">
+                            <h4>🤖 Turn Efficiency & Accuracy</h4>
+                            <div class="accuracy-gauge">
+                                <div id="gauge-fill" class="gauge-fill" style="width: 100%;"></div>
+                            </div>
+                            <p id="gauge-desc" style="font-size: 12px; margin-top: 8px; color: #a3ffc2;">High move precision: 0 invalid swaps.</p>
+                        </div>
+                    </div>
+
+                    <!-- DATA TABLE PREVIEW -->
+                    <h4 style="margin-top: 15px; color: var(--gold);">📋 Live Telemetry Table (player_game_data.csv)</h4>
+                    <div class="pbi-table-container">
+                        <table class="pbi-table">
+                            <thead>
+                                <tr>
+                                    <th>PlayerID</th><th>SessionID</th><th>Mode</th><th>Level</th><th>Player Score</th><th>AI Score</th><th>Valid Swaps</th><th>Matches</th><th>Combo</th><th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pbi-table-body">
+                                <!-- Injected dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="pbi-btn-csv" class="btn btn-primary">📥 Export player_game_data.csv</button>
+                    <button id="pbi-btn-json" class="btn btn-green">📄 Export player_game_data.json</button>
+                    <button class="close-modal btn btn-secondary">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI CANDY POINT & RULE WORTH ANALYZER MODAL (ACCEPT / REJECT) -->
+        <div id="ai-analyzer-modal" class="modal">
+            <div class="modal-content glass-card">
+                <div class="modal-header">
+                    <h2>🔬 AI Candy Point & Synthesis Worth Analyzer</h2>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="analyzer-card">
+                        <!-- PROMINENT AI DECISION BADGE -->
+                        <div id="ai-decision-badge" class="ai-decision-badge badge-accept">
+                            <span id="ai-decision-text">AI DECISION: ✅ ACCEPTED (WORTH IT)</span>
+                        </div>
+
+                        <div class="analyzer-target-badge">
+                            <span id="analyzer-icon" style="font-size: 36px;">🔻</span>
+                            <div>
+                                <h3 id="analyzer-target-name">Ruby Candy (RUBY)</h3>
+                                <p id="analyzer-target-detail">Formula: Match 2: 🍓 Red + 🍓 Red = 🔻 Ruby Candy</p>
+                            </div>
+                        </div>
+
+                        <div class="analysis-results">
+                            <div class="result-row">
+                                <span class="res-label">Score Worthiness Rating:</span>
+                                <span id="res-rating" class="res-value val-gold">9.1 / 10 (Worth It)</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="res-label">Match Size Requirement:</span>
+                                <span id="res-match-req" class="res-value val-pink">Match 2 Required</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="res-label">Score Yield vs Base:</span>
+                                <span id="res-efficiency" class="res-value">3.3x Base Efficiency</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="res-label">Move Savings Potential:</span>
+                                <span id="res-move-savings" class="res-value">Saves ~3.5 moves to reach level target</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="res-label">Game Balance Status:</span>
+                                <span id="res-balance" class="res-value val-green">✅ PERFECTLY BALANCED</span>
+                            </div>
+                        </div>
+
+                        <div class="ai-report-box">
+                            <h4>🧠 AI Algorithmic Verdict:</h4>
+                            <p id="ai-verdict-text">Analyzing candy points and synthesis combination formula...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="close-modal btn btn-primary">Got it!</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEVEL SELECTION MODAL (20 Levels) -->
+        <div id="level-select-modal" class="modal">
+            <div class="modal-content glass-card wide-modal">
+                <div class="modal-header">
+                    <h2>📋 Select Level (1 to 20)</h2>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="level-cards-grid" class="level-cards-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CREATE NEW SYNTHESIS CANDY MODAL (WITH 30+ UNIQUE ICONS DROPDOWN!) -->
+        <div id="create-candy-modal" class="modal">
+            <div class="modal-content glass-card wide-modal">
+                <div class="modal-header">
+                    <h2>🧪 Add Candy Synthesis (Match 2, 3, 4, or 5 Combination)</h2>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <!-- MATCH SIZE CHOICE SELECTOR -->
+                    <div class="form-group">
+                        <label>Select Number of Candies in Synthesis Formula:</label>
+                        <select id="synth-match-size">
+                            <option value="2" selected>2 Candies Combination (Match 2: Pair Combo)</option>
+                            <option value="3">3 Candies Combination (Match 3: Triple Combo)</option>
+                            <option value="4">4 Candies Combination (Match 4: Quad Combo)</option>
+                            <option value="5">5 Candies Combination (Match 5: Quintuple Combo)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group synthesis-group">
+                        <label>Synthesis Ingredients Formula:</label>
+                        <div id="synthesis-selects-container" class="synthesis-selects">
+                            <select id="synth-in1">
+                                <option value="RED" selected>🍓 Red Berry (RED)</option>
+                                <option value="BLUE">🫐 Blueberry (BLUE)</option>
+                                <option value="GREEN">🍏 Apple Green (GREEN)</option>
+                                <option value="YELLOW">🍋 Lemon (YELLOW)</option>
+                                <option value="PURPLE">🍇 Grape (PURPLE)</option>
+                                <option value="ORANGE">🍊 Orange (ORANGE)</option>
+                            </select>
+                            <span class="plus-sign">+</span>
+                            <select id="synth-in2">
+                                <option value="RED" selected>🍓 Red Berry (RED)</option>
+                                <option value="BLUE">🫐 Blueberry (BLUE)</option>
+                                <option value="GREEN">🍏 Apple Green (GREEN)</option>
+                                <option value="YELLOW">🍋 Lemon (YELLOW)</option>
+                                <option value="PURPLE">🍇 Grape (PURPLE)</option>
+                                <option value="ORANGE">🍊 Orange (ORANGE)</option>
+                            </select>
+
+                            <span id="plus-sign-3" class="plus-sign" style="display:none;">+</span>
+                            <select id="synth-in3" style="display:none;">
+                                <option value="RED">🍓 Red Berry (RED)</option>
+                                <option value="BLUE" selected>🫐 Blueberry (BLUE)</option>
+                                <option value="GREEN">🍏 Apple Green (GREEN)</option>
+                                <option value="YELLOW">🍋 Lemon (YELLOW)</option>
+                                <option value="PURPLE">🍇 Grape (PURPLE)</option>
+                                <option value="ORANGE">🍊 Orange (ORANGE)</option>
+                            </select>
+
+                            <span id="plus-sign-4" class="plus-sign" style="display:none;">+</span>
+                            <select id="synth-in4" style="display:none;">
+                                <option value="RED">🍓 Red Berry (RED)</option>
+                                <option value="BLUE">🫐 Blueberry (BLUE)</option>
+                                <option value="GREEN" selected>🍏 Apple Green (GREEN)</option>
+                                <option value="YELLOW">🍋 Lemon (YELLOW)</option>
+                                <option value="PURPLE">🍇 Grape (PURPLE)</option>
+                                <option value="ORANGE">🍊 Orange (ORANGE)</option>
+                            </select>
+
+                            <span id="plus-sign-5" class="plus-sign" style="display:none;">+</span>
+                            <select id="synth-in5" style="display:none;">
+                                <option value="RED">🍓 Red Berry (RED)</option>
+                                <option value="BLUE">🫐 Blueberry (BLUE)</option>
+                                <option value="GREEN">🍏 Apple Green (GREEN)</option>
+                                <option value="YELLOW" selected>🍋 Lemon (YELLOW)</option>
+                                <option value="PURPLE">🍇 Grape (PURPLE)</option>
+                                <option value="ORANGE">🍊 Orange (ORANGE)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Synthesized Candy Name:</label>
+                        <input type="text" id="candy-name-input" placeholder="e.g. Ruby Candy" value="Ruby Candy">
+                    </div>
+
+                    <!-- 30+ UNIQUE ICONS PALETTE SELECTION -->
+                    <div class="form-group">
+                        <label>Synthesized Candy Icon/Symbol (30+ Unique Choices):</label>
+                        <select id="candy-icon-select">
+                            <!-- GEMS & CRYSTALS -->
+                            <option value="🔻" selected>🔻 Ruby Gem</option>
+                            <option value="🔮">🔮 Crystal Orb</option>
+                            <option value="💎">💎 Diamond Gem</option>
+                            <option value="🧪">🧪 Chemical Alchemy</option>
+                            <option value="✨">✨ Amethyst Sparkle</option>
+                            <option value="⭐">⭐ Golden Star</option>
+                            <option value="🌟">🌟 Shining Star</option>
+                            <option value="☀️">☀️ Solar Sun</option>
+                            <option value="🌙">🌙 Crescent Moon</option>
+                            <option value="⚡">⚡ Lightning Bolt</option>
+                            <option value="💥">💥 Explosion Blast</option>
+                            <option value="🌌">🌌 Galaxy Nebula</option>
+                            <option value="🔥">🔥 Element Flame</option>
+                            <!-- SWEETS & CANDIES -->
+                            <option value="🍬">🍬 Hard Candy</option>
+                            <option value="🍭">🍭 Lollipop</option>
+                            <option value="🍫">🍫 Chocolate Bar</option>
+                            <option value="🍩">🍩 Donut</option>
+                            <option value="🧁">🧁 Cupcake</option>
+                            <option value="🍰">🍰 Shortcake</option>
+                            <option value="🍪">🍪 Cookie</option>
+                            <option value="🍯">🍯 Honey Pot</option>
+                            <!-- FRUITS -->
+                            <option value="🍍">🍍 Pineapple</option>
+                            <option value="🍑">🍑 Peach</option>
+                            <option value="🍒">🍒 Cherries</option>
+                            <option value="🥝">🥝 Kiwi</option>
+                            <option value="🍉">🍉 Watermelon</option>
+                            <option value="🍌">🍌 Banana</option>
+                            <option value="🍎">🍎 Red Apple</option>
+                            <option value="🍐">🍐 Pear</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Candy Score Value:</label>
+                        <input type="number" id="candy-score-input" value="100" min="10">
+                    </div>
+
+                    <button id="btn-check-candy-worth" class="btn btn-small btn-gold" style="width:100%; margin-top: 5px;">🔬 Run AI Worth Check (Accept / Reject)</button>
+                </div>
+                <div class="modal-footer">
+                    <button id="btn-save-new-candy" class="btn btn-primary">Synthesize & Add Candy to Game</button>
+                    <button class="close-modal btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CUSTOM RULE CREATOR MODAL -->
+        <div id="custom-rule-modal" class="modal">
+            <div class="modal-content glass-card">
+                <div class="modal-header">
+                    <h2>📜 Create Custom Game Rule</h2>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Rule Name:</label>
+                        <input type="text" id="rule-name-input" value="Ruby Combination Bonus">
+                    </div>
+                    <div class="form-group">
+                        <label>Match Size & Condition (e.g. Match 2 Red + Red):</label>
+                        <input type="text" id="rule-cond-input" value="Match 2 Red Berry + Red Berry">
+                    </div>
+                    <div class="form-group">
+                        <label>Effect (e.g. Synthesize Ruby Candy):</label>
+                        <input type="text" id="rule-effect-input" value="Yields Ruby Candy (+100 pts)">
+                    </div>
+
+                    <button id="btn-check-rule-worth" class="btn btn-small btn-gold" style="width:100%; margin-top: 5px;">🔬 Run AI Worth Check (Accept / Reject)</button>
+                </div>
+                <div class="modal-footer">
+                    <button id="btn-save-custom-rule" class="btn btn-primary">Save & Apply Rule</button>
+                    <button class="close-modal btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js?v=2.0.0"></script>
+
+</body>
+</html>

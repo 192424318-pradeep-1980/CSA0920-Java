@@ -1,0 +1,3 @@
+@echo off
+echo Starting Candy Match Saga...
+java -cp "bin;lib/*" com.candymatch.Main

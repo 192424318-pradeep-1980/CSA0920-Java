@@ -1,0 +1,48 @@
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+const PORT = 8080;
+const HOST = '0.0.0.0';
+
+const MIME_TYPES = {
+    '.html': 'text/html',
+    '.css': 'text/css',
+    '.js': 'text/javascript',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon'
+};
+
+const server = http.createServer((req, res) => {
+    let reqUrl = req.url.split('?')[0];
+    if (reqUrl === '/') reqUrl = '/index.html';
+    
+    let filePath = path.join(__dirname, reqUrl);
+    
+    fs.readFile(filePath, (err, content) => {
+        if (err) {
+            res.writeHead(404, { 'Content-Type': 'text/html' });
+            res.end('<h1>404 Not Found</h1>');
+            return;
+        }
+        
+        let ext = path.extname(filePath).toLowerCase();
+        let mime = MIME_TYPES[ext] || 'application/octet-stream';
+        
+        res.writeHead(200, {
+            'Content-Type': mime,
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        });
+        res.end(content);
+    });
+});
+
+server.listen(PORT, HOST, () => {
+    console.log(`Server is running at http://localhost:${PORT}/ and http://127.0.0.1:${PORT}/`);
+});
